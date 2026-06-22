@@ -15,23 +15,36 @@
 </head>
 <body>
   <header class="topbar">
-    <div class="stat"><span class="num" id="stat-known">0</span><span class="lbl">known</span></div>
-    <div class="stat"><span class="num" id="stat-seen">0</span><span class="lbl">seen</span></div>
-    <div class="stat"><span class="num" id="stat-total">0</span><span class="lbl">total</span></div>
+    <div class="stat"><span class="num" id="stat-streak">0</span><span class="lbl">&#x1f525; streak</span></div>
+    <div class="stat"><span class="num" id="stat-due">0</span><span class="lbl">due</span></div>
+    <div class="stat"><span class="num" id="stat-goal">0/20</span><span class="lbl">today</span></div>
+    <div class="stat"><span class="num" id="stat-learned">0</span><span class="lbl">learned</span></div>
     <button id="reset-btn" class="reset" title="Reset progress" aria-label="Reset progress">&#x21bb;</button>
   </header>
+  <div class="goalbar"><div class="goalbar-fill" id="goalbar-fill"></div></div>
 
   <main id="stage" class="stage">
-    <!-- swipe hint backgrounds -->
     <div class="hint hint-know" aria-hidden="true"><span>&#x2713; I know</span></div>
     <div class="hint hint-dont" aria-hidden="true"><span>&#x21bb; Show more</span></div>
 
     <div id="card" class="card" role="button" tabindex="0" aria-live="polite">
       <div class="pos" id="card-pos"></div>
-      <div class="kz" id="card-kz">&mdash;</div>
-      <div class="line en" id="card-en"></div>
-      <div class="line ru" id="card-ru"></div>
+      <div class="new-badge" id="new-badge">NEW</div>
+      <button class="edit-btn" id="edit-btn" aria-label="Edit this card" title="Edit this card">&#x270e;</button>
+      <div class="dir-badge" id="dir-badge"></div>
+      <div class="content" id="card-content">
+        <div class="kz" id="card-kz">&mdash;</div>
+        <div class="line en" id="card-en"></div>
+        <div class="line ru" id="card-ru"></div>
+      </div>
       <div class="tap-hint" id="tap-hint">tap to reveal</div>
+    </div>
+
+    <div id="done" class="done hidden">
+      <div class="done-emoji">&#x1f389;</div>
+      <h2>You're all caught up!</h2>
+      <p id="done-msg">No cards due right now. Come back later, or keep going to study ahead.</p>
+      <button id="ahead-btn" class="ahead">Study ahead</button>
     </div>
   </main>
 
@@ -39,6 +52,22 @@
     <button class="act act-know" id="btn-know">&larr; I know</button>
     <button class="act act-dont" id="btn-dont">don't know &rarr;</button>
   </footer>
+
+  <div id="edit-modal" class="modal hidden">
+    <div class="modal-card">
+      <h2>Edit card</h2>
+      <label>Kazakh<input id="edit-kz" type="text" autocapitalize="off" autocomplete="off" /></label>
+      <label>English<input id="edit-en" type="text" autocomplete="off" /></label>
+      <label>Russian<input id="edit-ru" type="text" autocomplete="off" /></label>
+      <label>Part of speech<input id="edit-pos" type="text" autocomplete="off" /></label>
+      <div class="modal-actions">
+        <button id="edit-reset" class="btn-ghost" title="Restore original text">Restore original</button>
+        <span class="spacer"></span>
+        <button id="edit-cancel" class="btn-secondary">Cancel</button>
+        <button id="edit-save" class="btn-primary">Save</button>
+      </div>
+    </div>
+  </div>
 
   <script src="words.js"></script>
   <script src="app.js"></script>
