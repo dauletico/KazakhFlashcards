@@ -7,7 +7,7 @@
 
   const STORAGE_KEY = "kazflash.progress.v1";
   const MAX_LEVEL = 8;      // higher level = better known = shown less often
-  const KNOWN_LEVEL = 3;    // counts as "known" in the stats
+  const KNOWN_LEVEL = 1;    // level >= this counts as "known" in the stats
 
   // --- progress store -------------------------------------------------
   // progress[id] = { level, seen }
