@@ -1,4 +1,4 @@
-const CACHE = "kazflash-v3";
+const CACHE = "kazflash-v4";
 const ASSETS = [
   "index.html",
   "styles.css",

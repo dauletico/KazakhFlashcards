@@ -76,6 +76,8 @@
 
   // --- card selection -------------------------------------------------
   let currentI = -1, lastI = -1, currentDir = "recognition", stage = 0;
+  let mode = "flashcards";
+  let quizI = -1, lastQuizI = -1, quizAnswered = false;
 
   function dueCards(now) {
     const out = [];
@@ -390,6 +392,159 @@
     const orig = WORDS[currentI];
     inKz.value = orig.kz; inEn.value = orig.en; inRu.value = orig.ru; inPos.value = orig.pos || "";
   });
+
+  // --- knowledge check (quiz) -----------------------------------------
+  const quizPanel = document.getElementById("quiz");
+  const quizEmpty = document.getElementById("quiz-empty");
+  const quizPos = document.getElementById("quiz-pos");
+  const quizKz = document.getElementById("quiz-kz");
+  const quizOptions = document.getElementById("quiz-options");
+  const quizFeedback = document.getElementById("quiz-feedback");
+  const bottombar = document.getElementById("bottombar");
+  const modeCardsBtn = document.getElementById("mode-cards");
+  const modeQuizBtn = document.getElementById("mode-quiz");
+
+  const QUIZ_OPTIONS = 4;
+  const QUIZ_NEXT_MS = 1100; // pause to show feedback before the next question
+
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+    }
+    return arr;
+  }
+
+  // words the learner has gotten right at least once
+  function learnedIndices() {
+    const out = [];
+    for (const k in state.cards) if (state.cards[k].reps >= 1) out.push(parseInt(k, 10));
+    return out;
+  }
+
+  // a wrong answer drops the card back into the flashcard rotation
+  function sendToFlashcards(i) {
+    const c = state.cards[i];
+    if (!c) return;
+    c.reps = 0;
+    c.lapses++;
+    c.interval = 0;
+    c.ease = Math.max(MIN_EASE, c.ease - 0.2);
+    c.due = Date.now();
+    save();
+  }
+
+  // build a set of answer indices: the correct one plus plausible distractors
+  function buildOptions(correctI) {
+    const correct = wordOf(correctI);
+    const pool = [];
+    for (let j = 0; j < WORDS.length; j++) {
+      if (j === correctI) continue;
+      if (wordOf(j).en === correct.en) continue; // skip duplicate meanings
+      pool.push(j);
+    }
+    const samePos = pool.filter((j) => wordOf(j).pos === correct.pos);
+    const others = pool.filter((j) => wordOf(j).pos !== correct.pos);
+    shuffle(samePos); shuffle(others);
+    const ordered = samePos.concat(others);
+    const opts = [correctI];
+    for (const j of ordered) {
+      if (opts.length >= QUIZ_OPTIONS) break;
+      opts.push(j);
+    }
+    return shuffle(opts);
+  }
+
+  function showQuiz() {
+    const learned = learnedIndices();
+    if (!learned.length) {
+      quizPanel.classList.add("hidden");
+      quizEmpty.classList.remove("hidden");
+      quizI = -1;
+      return;
+    }
+    quizEmpty.classList.add("hidden");
+    quizPanel.classList.remove("hidden");
+
+    let choices = learned;
+    if (learned.length > 1) choices = learned.filter((i) => i !== lastQuizI);
+    quizI = choices[Math.floor(Math.random() * choices.length)];
+    lastQuizI = quizI;
+    renderQuiz();
+  }
+
+  function renderQuiz() {
+    quizAnswered = false;
+    const w = wordOf(quizI);
+    quizPos.textContent = w.pos || "";
+    quizKz.textContent = w.kz;
+    quizFeedback.textContent = "";
+    quizFeedback.className = "quiz-feedback";
+
+    quizOptions.innerHTML = "";
+    buildOptions(quizI).forEach((j) => {
+      const o = wordOf(j);
+      const btn = document.createElement("button");
+      btn.className = "quiz-opt";
+      btn.dataset.i = j;
+      btn.innerHTML = '<span class="opt-en"></span><span class="opt-ru"></span>';
+      btn.querySelector(".opt-en").textContent = o.en;
+      btn.querySelector(".opt-ru").textContent = o.ru;
+      btn.addEventListener("click", () => answerQuiz(j, btn));
+      quizOptions.appendChild(btn);
+    });
+  }
+
+  function answerQuiz(chosenI, btn) {
+    if (quizAnswered || quizI < 0) return;
+    quizAnswered = true;
+    const correct = chosenI === quizI;
+    const buttons = quizOptions.querySelectorAll(".quiz-opt");
+
+    buttons.forEach((b) => {
+      b.disabled = true;
+      if (parseInt(b.dataset.i, 10) === quizI) b.classList.add("correct");
+    });
+
+    if (correct) {
+      quizFeedback.textContent = "Correct ✓";
+      quizFeedback.className = "quiz-feedback ok";
+    } else {
+      btn.classList.add("wrong");
+      sendToFlashcards(quizI);
+      updateStats();
+      quizFeedback.textContent = "Not quite — back to flashcards ↻";
+      quizFeedback.className = "quiz-feedback bad";
+    }
+
+    setTimeout(() => { if (mode === "quiz") showQuiz(); }, QUIZ_NEXT_MS);
+  }
+
+  // --- mode switching -------------------------------------------------
+  function setMode(m) {
+    mode = m;
+    const quizMode = m === "quiz";
+    modeCardsBtn.classList.toggle("active", !quizMode);
+    modeQuizBtn.classList.toggle("active", quizMode);
+    modeCardsBtn.setAttribute("aria-selected", String(!quizMode));
+    modeQuizBtn.setAttribute("aria-selected", String(quizMode));
+    bottombar.style.display = quizMode ? "none" : "";
+
+    if (quizMode) {
+      currentI = -1;
+      card.style.display = "none";
+      donePanel.classList.add("hidden");
+      showQuiz();
+    } else {
+      quizPanel.classList.add("hidden");
+      quizEmpty.classList.add("hidden");
+      showCard();
+    }
+  }
+
+  modeCardsBtn.addEventListener("click", () => setMode("flashcards"));
+  modeQuizBtn.addEventListener("click", () => setMode("quiz"));
+  document.getElementById("quiz-empty-cards").addEventListener("click", () => setMode("flashcards"));
 
   // --- boot -----------------------------------------------------------
   refreshDay();
